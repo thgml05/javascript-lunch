@@ -96,7 +96,7 @@ const storeData = [
     link: "#"
   }
 ];
-const createModal = () => {
+const Modal = () => {
   const modal = document.createElement("div");
   const modalBackdrop = document.createElement("div");
   const modalContainer = document.createElement("div");
@@ -111,9 +111,11 @@ const Button = (category) => {
   const button = document.createElement("button");
   button.setAttribute("type", buttonCategory[category].type);
   button.setAttribute("id", buttonCategory[category].id);
-  button.classList.add(buttonCategory[category].class);
-  button.classList.add("text-caption");
-  button.classList.add("button");
+  button.classList.add(
+    buttonCategory[category].class,
+    "text-caption",
+    "button"
+  );
   button.textContent = buttonCategory[category].name;
   return button;
 };
@@ -134,7 +136,7 @@ const buttonCategory = {
 const IMG_SRC = {
   한식: "./category-korean.png",
   중식: "./category-chinese.png",
-  일식: ".category-japanese.png",
+  일식: "./category-japanese.png",
   양식: "./category-western.png",
   아시안: "./category-asian.png",
   기타: "./category-etc.png"
@@ -156,11 +158,10 @@ const Store = (storeProps) => {
 const getImgSrc = (category) => {
   return IMG_SRC[category];
 };
-const form = {
+const formValidate = {
   MAX_NAME_LENGTH: 20,
   MIN_NAME_LENGTH: 1,
-  MAX_DESC_LENGTH: 300,
-  LINK_REGEX: /^(https?:\/\/)?www\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/
+  MAX_DESC_LENGTH: 300
 };
 const errorMessage = {
   EMPTY_SELECTOR: "필수 입력란입니다.",
@@ -168,28 +169,25 @@ const errorMessage = {
   DESC_LENGTH: "설명은 최대 300자까지 가능합니다.",
   LINK_FORM: "참고 링크 형식에 맞게 입력해주세요."
 };
+const regex = {
+  LINK_REGEX: /^(https?:\/\/)?www\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/
+};
 const validate = {
   emptySelector: (value) => {
     if (value === "") throw new Error(errorMessage.EMPTY_SELECTOR);
   },
   nameLength: (name) => {
-    if (name.length > form.MAX_NAME_LENGTH || name.length < form.MIN_NAME_LENGTH)
+    if (name.length > formValidate.MAX_NAME_LENGTH || name.length < formValidate.MIN_NAME_LENGTH)
       throw new Error(errorMessage.NAME_LENGTH);
   },
   descLength: (desc) => {
-    if (desc.length > form.MAX_DESC_LENGTH)
+    if (desc.length > formValidate.MAX_DESC_LENGTH)
       throw new Error(errorMessage.DESC_LENGTH);
   },
   linkForm: (link) => {
-    if (link.length !== 0 && !form.LINK_REGEX.test(link))
+    if (link.length !== 0 && !regex.LINK_REGEX.test(link))
       throw new Error(errorMessage.LINK_FORM);
   }
-};
-const createFormContent = ({ title: title2 }) => {
-  return `
-    <h2 class="modal-title text-title">${title2}</h2>
-    <form class="modal-form"></form>
-  `;
 };
 const title = {
   category: "카테고리",
@@ -204,12 +202,11 @@ const getOptionValue = (name, option) => {
   }
   return option;
 };
-const optionInput = (name, options2) => {
+const OptionInput = (name, options2) => {
   const formItem = document.createElement("div");
-  formItem.classList.add("form-item");
-  formItem.classList.add("form-item--required");
+  formItem.classList.add("form-item", "form-item--required");
   formItem.innerHTML = `
-  <label for="category text-caption">${title[name]}</label>
+  <label for="${name}">${title[name]}</label>
                 <select name=${name} id=${name}>
                   <option value="">선택해 주세요</option>
                 ${options2.map(
@@ -226,28 +223,27 @@ const options = {
   category: ["한식", "중식", "일식", "양식", "아시안", "기타"],
   distance: ["5", "10", "15", "20", "25", "30"]
 };
-const textInput = (name, isRequired, helpText2) => {
+const TextInput = (name, isRequired, helpText2) => {
   const formItem = document.createElement("div");
   formItem.classList.add("form-item");
   if (isRequired) formItem.classList.add("form-item--required");
   formItem.innerHTML = `
-                <label for="${name} text-caption">${title[name]}</label>
+                <label for="${name}">${title[name]}</label>
                 <input type="text" name="${name}" id="${name}" />
   `;
   if (helpText2) {
     const span = document.createElement("span");
-    span.classList.add("help-text");
-    span.classList.add("text-caption");
+    span.classList.add("help-text", "text-caption");
     span.innerText = helpText2;
     formItem.appendChild(span);
   }
   return formItem;
 };
-const textArea = (name, helpText2, colRow = { col: 30, row: 5 }) => {
+const TextArea = (name, helpText2, colRow = { col: 30, row: 5 }) => {
   const formItem = document.createElement("div");
   formItem.classList.add("form-item");
   formItem.innerHTML = `
-  <label for="${name} text-caption">${title[name]}</label>
+  <label for="${name}">${title[name]}</label>
                 <textarea
                   name="${name}"
                   id="${name}"
@@ -271,13 +267,14 @@ const modalUtils = {
   },
   addForm: () => {
     const modalContainer = querySelector(".modal-container");
-    modalContainer.innerHTML = createFormContent({ title: "새로운 음식점" });
+    modalContainer.innerHTML = `<h2 class="modal-title text-title">새로운 음식점</h2>
+    <form class="modal-form"></form>`;
     const modalForm = querySelector(".modal-form");
-    modalForm.appendChild(optionInput("category", options.category));
-    modalForm.appendChild(textInput("name", true));
-    modalForm.appendChild(optionInput("distance", options.distance));
-    modalForm.appendChild(textArea("description", helpText.description));
-    modalForm.appendChild(textInput("link", false, helpText.link));
+    modalForm.appendChild(OptionInput("category", options.category));
+    modalForm.appendChild(TextInput("name", true));
+    modalForm.appendChild(OptionInput("distance", options.distance));
+    modalForm.appendChild(TextArea("description", helpText.description));
+    modalForm.appendChild(TextInput("link", false, helpText.link));
     modalForm.appendChild(modalUtils.addButtons());
     modalUtils.addFormCheck();
     querySelector("#cancel-button").addEventListener(
@@ -371,12 +368,13 @@ const storeUtils = {
     }
   },
   createStore: (e) => {
+    const data = new FormData(e.target);
     return {
-      category: e.target[0].value,
-      name: e.target[1].value,
-      dist: e.target[2].value,
-      description: e.target[3].value,
-      link: e.target[4].value
+      category: data.get("category"),
+      name: data.get("name"),
+      dist: data.get("distance"),
+      description: data.get("description"),
+      link: data.get("link")
     };
   }
 };
@@ -385,7 +383,7 @@ addEventListener("load", () => {
   storeList.list.forEach((store) => {
     storeUtils.addStore(store);
   });
-  const modal = createModal();
+  const modal = Modal();
   querySelector("main").appendChild(modal);
   querySelector(".gnb__button").addEventListener("click", () => {
     querySelector(".modal").classList.add("modal--open");
