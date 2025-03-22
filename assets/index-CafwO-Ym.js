@@ -77,50 +77,54 @@ class StoreList {
   }
   // 식당 추가
   updateList(store) {
-    console.log(Object.keys(options.sortFilter)[0]);
     __privateGet(this, _list).push(store);
-    this.filterStoreList(Object.keys(options.sortCategory)[0], false);
-    this.sortStoreList(Object.keys(options.sortFilter)[0]);
+    this.applyFilterAndSort(false);
   }
   // 즐겨찾기 등록
-  updateIsFavorite(id, isFavorite) {
+  updateIsFavorite(id, isFavoriteMenu) {
     __privateSet(this, _list, __privateGet(this, _list).map((store) => {
       if (store.id === id) !store.isFavorite;
       return store;
     }));
-    this.filterStoreList(__privateGet(this, _category), isFavorite);
-    this.sortStoreList(__privateGet(this, _sortBy));
+    if (!isFavoriteMenu) {
+      this.filterStoreList(__privateGet(this, _category));
+      this.sortStoreList(__privateGet(this, _sortBy));
+    } else {
+      __privateSet(this, _filteredList, __privateGet(this, _list).filter((store) => store.isFavorite));
+    }
+  }
+  filterByMenuBar(menu) {
+    if (menu === "모든 음식점") {
+      this.filterStoreList("전체");
+      this.sortStoreList("name");
+    } else if (menu === "자주 가는 음식점") {
+      __privateSet(this, _filteredList, __privateGet(this, _list).filter((store) => store.isFavorite));
+      this.sortStoreList("name");
+    }
   }
   // 식당 삭제
   deleteStore(id, isFavorite) {
     __privateSet(this, _list, __privateGet(this, _list).filter((store) => store.id !== id));
-    this.filterStoreList(Object.keys(options.sortCategory)[0], isFavorite);
-    this.sortStoreList(Object.keys(options.sortFilter)[0]);
-  }
-  // 모든 음식점 or 자주 가는 음식점
-  filterByMenuBar(isFavorite) {
-    this.filterStoreList(Object.keys(options.sortCategory)[0], isFavorite);
-    this.sortStoreList(Object.keys(options.sortFilter)[0]);
+    this.applyFilterAndSort(isFavorite);
   }
   // id로 식당 정보 찾기
   filterByStoreId(id) {
     return __privateGet(this, _list).find((store) => store.id === id);
   }
-  // 카테고리 필터 적용
-  filterStoreList(category, isFavorite) {
-    if (isFavorite) {
-      if (category === "전체")
-        __privateSet(this, _filteredList, __privateGet(this, _list).filter((store) => store.isFavorite));
-      else
-        __privateSet(this, _filteredList, __privateGet(this, _list).filter(
-          (l) => l.category === category && l.isFavorite
-        ));
-      __privateSet(this, _category, category);
-      return;
+  applyFilterAndSort(isFavorite) {
+    if (!isFavorite) {
+      this.filterStoreList(__privateGet(this, _category));
+    } else {
+      __privateSet(this, _filteredList, __privateGet(this, _list).filter((store) => store.isFavorite));
     }
+    this.sortStoreList(__privateGet(this, _sortBy));
+  }
+  // 카테고리 필터 적용
+  filterStoreList(category) {
     if (category === "전체") __privateSet(this, _filteredList, __privateGet(this, _list));
     else __privateSet(this, _filteredList, __privateGet(this, _list).filter((l) => l.category === category));
     __privateSet(this, _category, category);
+    this.sortStoreList(__privateGet(this, _sortBy));
   }
   // 정렬 적용
   sortStoreList(sortBy) {
@@ -137,6 +141,103 @@ _list = new WeakMap();
 _filteredList = new WeakMap();
 _category = new WeakMap();
 _sortBy = new WeakMap();
+const createElement = ({
+  tag,
+  type = "",
+  name = "",
+  id = "",
+  htmlFor = "",
+  classList = [],
+  textContent = ""
+}) => {
+  const element = document.createElement(tag);
+  if (type !== "") element.setAttribute("type", type);
+  if (name !== "") element.setAttribute("name", name);
+  if (id !== "") element.setAttribute("id", id);
+  if (htmlFor !== "") element.setAttribute("for", htmlFor);
+  if (classList.length !== 0) element.classList.add(...classList);
+  if (textContent !== "") element.textContent = textContent;
+  return element;
+};
+const Button = (props) => {
+  return createElement({
+    tag: "button",
+    type: props.type,
+    id: props.id,
+    classList: [...props.class, "text-caption", "button"],
+    textContent: props.name
+  });
+};
+const title = {
+  category: "카테고리",
+  distance: "거리 (도보 이동 시간)",
+  name: "이름",
+  description: "설명",
+  link: "참고 링크"
+};
+const getOptionValue = (name, option) => {
+  if (name === "distance") {
+    return `${option}분 내`;
+  }
+  return option;
+};
+const OptionInput = (name, options2) => {
+  const formItem = createElement({
+    tag: "div",
+    classList: ["form-item", "form-item--required"]
+  });
+  formItem.innerHTML = `
+  <label for="${name}">${title[name]}</label>
+                <select name=${name} id=${name}>
+                  <option value="">선택해 주세요</option>
+                ${options2.map(
+    (option) => `<option value="${option}">${getOptionValue(
+      name,
+      option
+    )}</option>`
+  ).join("")}
+                </select>
+  `;
+  return formItem;
+};
+const IMG_SRC = {
+  한식: "./category-korean.png",
+  중식: "./category-chinese.png",
+  일식: "./category-japanese.png",
+  양식: "./category-western.png",
+  아시안: "./category-asian.png",
+  기타: "./category-etc.png",
+  MODAL_ICON_SRC: "./add-button.png",
+  STAR_ICON_LINED: "./favorite-icon-lined.png",
+  STAR_ICON_FILLED: "./favorite-icon-filled.png"
+};
+const Store = (storeProps) => {
+  const imgSrc = getImgSrc(storeProps.category);
+  const list = createElement({
+    tag: "li",
+    id: storeProps.id,
+    classList: ["restaurant"]
+  });
+  list.innerHTML = `
+    <div class="restaurant__category">
+      <img src="${imgSrc}" alt=${storeProps.category} class="category-icon" />
+    </div>
+    <div class="restaurant__info">
+      <h3 class="restaurant__name text-subtitle">${storeProps.name}</h3>
+      <span class="restaurant__distance text-body">캠퍼스부터 ${storeProps.dist}분 내</span>
+      <p class="restaurant__description text-body">
+        ${storeProps.description}
+      </p>
+    </div>
+    <div>
+      <img src=${storeProps.isFavorite ? IMG_SRC.STAR_ICON_FILLED : IMG_SRC.STAR_ICON_LINED} alt="star-icon" class="star-icon">
+    </div>
+`;
+  document.querySelector(".restaurant-list").appendChild(list);
+};
+const getImgSrc = (category) => {
+  return IMG_SRC[category];
+};
 const storeData = [
   {
     id: "1",
@@ -184,83 +285,6 @@ const storeData = [
     isFavorite: false
   }
 ];
-const createElement = ({
-  tag,
-  name = "",
-  id = "",
-  htmlFor = "",
-  classList = []
-}) => {
-  const element = document.createElement(tag);
-  if (name !== "") element.setAttribute("name", name);
-  if (id !== "") element.setAttribute("id", id);
-  if (htmlFor !== "") element.setAttribute("for", htmlFor);
-  if (classList.length !== 0) element.classList.add(...classList);
-  return element;
-};
-const Modal = () => {
-  const modal = createElement({ tag: "div", classList: ["modal"] });
-  const modalBackdrop = createElement({
-    tag: "div",
-    classList: ["modal-backdrop"]
-  });
-  const modalContainer = createElement({
-    tag: "div",
-    classList: ["modal-container"]
-  });
-  modal.appendChild(modalBackdrop);
-  modal.appendChild(modalContainer);
-  return modal;
-};
-const Select = ({ name = "", id = "", classList = [], options: options2 }) => {
-  const select = createElement({
-    tag: "select",
-    name,
-    id,
-    classList
-  });
-  select.innerHTML = `
-  ${Object.keys(options2).map((key) => `<option value="${key}">${options2[key]}</option>`).join("")}`;
-  return select;
-};
-const IMG_SRC = {
-  한식: "./category-korean.png",
-  중식: "./category-chinese.png",
-  일식: "./category-japanese.png",
-  양식: "./category-western.png",
-  아시안: "./category-asian.png",
-  기타: "./category-etc.png",
-  MODAL_ICON_SRC: "./add-button.png",
-  STAR_ICON_LINED: "./favorite-icon-lined.png",
-  STAR_ICON_FILLED: "./favorite-icon-filled.png"
-};
-const Header = (title2) => {
-  return `<h1 class="gnb__title text-title">${title2}</h1>
-        <button type="button" class="gnb__button" aria-label="음식점 추가">
-          <img src=${IMG_SRC.MODAL_ICON_SRC} alt="음식점 추가" />
-        </button>`;
-};
-const Store = (storeProps, starIconId) => {
-  const imgSrc = getImgSrc(storeProps.category);
-  return `
-    <div class="restaurant__category">
-      <img src="${imgSrc}" alt=${storeProps.category} class="category-icon" />
-    </div>
-    <div class="restaurant__info">
-      <h3 class="restaurant__name text-subtitle">${storeProps.name}</h3>
-      <span class="restaurant__distance text-body">캠퍼스부터 ${storeProps.dist}분 내</span>
-      <p class="restaurant__description text-body">
-        ${storeProps.description}
-      </p>
-    </div>
-    <div>
-      <img src=${storeProps.isFavorite ? IMG_SRC.STAR_ICON_FILLED : IMG_SRC.STAR_ICON_LINED} alt="star-icon" class="star-icon" id=${starIconId}>
-    </div>
-`;
-};
-const getImgSrc = (category) => {
-  return IMG_SRC[category];
-};
 const storage = {
   // 초기 데이터 셋팅
   setStorage: () => {
@@ -327,45 +351,150 @@ const validate = {
       throw new Error(errorMessage.LINK_FORM);
   }
 };
-const Button = (props) => {
-  const button = document.createElement("button");
-  button.setAttribute("type", props.type);
-  button.setAttribute("id", props.id);
-  button.classList.add(props.class, "text-caption", "button");
-  button.textContent = props.name;
-  return button;
-};
-const title = {
-  category: "카테고리",
-  distance: "거리 (도보 이동 시간)",
-  name: "이름",
-  description: "설명",
-  link: "참고 링크"
-};
-const getOptionValue = (name, option) => {
-  if (name === "distance") {
-    return `${option}분 내`;
+const byteToHex = [];
+for (let i = 0; i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+function unsafeStringify(arr, offset = 0) {
+  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+}
+let getRandomValues;
+const rnds8 = new Uint8Array(16);
+function rng() {
+  if (!getRandomValues) {
+    if (typeof crypto === "undefined" || !crypto.getRandomValues) {
+      throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
+    }
+    getRandomValues = crypto.getRandomValues.bind(crypto);
   }
-  return option;
-};
-const OptionInput = (name, options2) => {
-  const formItem = createElement({
-    tag: "div",
-    classList: ["form-item", "form-item--required"]
-  });
-  formItem.innerHTML = `
-  <label for="${name}">${title[name]}</label>
-                <select name=${name} id=${name}>
-                  <option value="">선택해 주세요</option>
-                ${options2.map(
-    (option) => `<option value="${option}">${getOptionValue(
-      name,
-      option
-    )}</option>`
-  ).join("")}
-                </select>
-  `;
-  return formItem;
+  return getRandomValues(rnds8);
+}
+const randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
+const native = { randomUUID };
+function v4(options2, buf, offset) {
+  var _a;
+  if (native.randomUUID && true && !options2) {
+    return native.randomUUID();
+  }
+  options2 = options2 || {};
+  const rnds = options2.random ?? ((_a = options2.rng) == null ? void 0 : _a.call(options2)) ?? rng();
+  if (rnds.length < 16) {
+    throw new Error("Random bytes length must be >= 16");
+  }
+  rnds[6] = rnds[6] & 15 | 64;
+  rnds[8] = rnds[8] & 63 | 128;
+  return unsafeStringify(rnds);
+}
+const storeRenderer = {
+  // 식당 리스트 업데이트
+  updateStore: (storeList, e) => {
+    const newStore = storeRenderer.createStore(e);
+    try {
+      e.preventDefault();
+      validate.emptySelector(newStore.category);
+      validate.nameLength(newStore.name);
+      validate.emptySelector(newStore.dist);
+      validate.descLength(newStore.description);
+      validate.linkForm(newStore.link);
+      storeList.updateList(newStore);
+      window.localStorage.setItem(
+        JSON.stringify(newStore.id),
+        JSON.stringify(newStore)
+      );
+      document.querySelector(".all-restaurant-button").classList.add("onMenuBar");
+      document.querySelector(".favorite-restaurant-button").classList.remove("onMenuBar");
+      document.querySelector(".restaurant-filter-container").classList.add("filter-open");
+      storeList.applyFilterAndSort(false);
+      storeRenderer.rerenderStoreList(storeList.filteredList);
+      document.querySelector(".modal-form").reset();
+      modalRenderer.closeModal(".modal-add-store");
+    } catch (error) {
+      storeRenderer.checkRequired("category", newStore.category, error);
+      storeRenderer.checkRequired("name", newStore.name, error);
+      storeRenderer.checkRequired("distance", newStore.dist, error);
+    }
+  },
+  // 필수 조건 확인
+  checkRequired: (inputName, value, error) => {
+    if (value === "") {
+      const inputElement = document.querySelector(`#${inputName}`);
+      modalRenderer.addErrorText(inputElement, error);
+    }
+  },
+  // 새로운 식당 데이터 생성
+  createStore: (e) => {
+    const data = new FormData(e.target);
+    return {
+      id: v4(),
+      category: data.get("category"),
+      name: data.get("name"),
+      dist: data.get("distance"),
+      description: data.get("description"),
+      link: data.get("link"),
+      isFavorite: false
+    };
+  },
+  // 식당 리스트 요소 제거
+  removeStoreElements: () => {
+    document.querySelector(".restaurant-list").replaceChildren();
+  },
+  // 식당 필터링
+  filterStore: (storeList, e) => {
+    storeList.filterStoreList(e.target.value);
+    storeRenderer.rerenderStoreList(storeList.filteredList);
+  },
+  // 식당 정렬
+  sortStore: (storeList, e) => {
+    storeList.sortStoreList(e.target.value);
+    storeRenderer.rerenderStoreList(storeList.filteredList);
+  },
+  // 즐겨찾기 수정
+  toggleFavorite: (storeList, starIcon, storeId) => {
+    const storeInfo = storeList.list.find((store) => store.id === storeId);
+    storeInfo.isFavorite = !storeInfo.isFavorite;
+    starIcon.setAttribute(
+      "src",
+      storeInfo.isFavorite ? IMG_SRC.STAR_ICON_FILLED : IMG_SRC.STAR_ICON_LINED
+    );
+    const isFavorite = document.querySelector(".onMenuBar").classList.contains("favorite-restaurant-button");
+    storage.updateIsFavorite(storeId);
+    storeList.updateIsFavorite(storeId, isFavorite);
+  },
+  // 모든 음식점 / 자주 가는 음식점 메뉴바 셋팅
+  setMenuBar: (storeList, e) => {
+    const button = e.target.closest(".menuBar-button");
+    const buttonText = button.querySelector(".button-text").textContent;
+    storeList.filterByMenuBar(buttonText);
+    if (buttonText === "모든 음식점") {
+      document.querySelector("#category-filter").value = "전체";
+      document.querySelector("#sorting-filter").value = "name";
+      document.querySelector(".restaurant-filter-container").classList.add("filter-open");
+      document.querySelector(".all-restaurant-button").classList.add("onMenuBar");
+      document.querySelector(".favorite-restaurant-button").classList.remove("onMenuBar");
+    }
+    if (buttonText === "자주 가는 음식점") {
+      document.querySelector(".restaurant-filter-container").classList.remove("filter-open");
+      document.querySelector(".favorite-restaurant-button").classList.add("onMenuBar");
+      document.querySelector(".all-restaurant-button").classList.remove("onMenuBar");
+    }
+    storeRenderer.rerenderStoreList(storeList.filteredList);
+  },
+  // 식당 삭제
+  deleteStore: (storeList) => {
+    const modal = document.querySelector(".modal-store-detail");
+    const storeId = modal.querySelector(".modal-container").getAttribute("id");
+    window.localStorage.removeItem(JSON.stringify(storeId));
+    const isFavorite = document.querySelector(".onMenuBar").classList.contains("favorite-restaurant-button");
+    storeList.deleteStore(storeId, isFavorite);
+    modalRenderer.closeModal(".modal-store-detail");
+    storeRenderer.rerenderStoreList(storeList.filteredList);
+  },
+  rerenderStoreList(list) {
+    storeRenderer.removeStoreElements();
+    list.forEach((store) => {
+      Store(store);
+    });
+  }
 };
 const StoreDetail = ({
   name,
@@ -401,6 +530,26 @@ const StoreDetail = ({
               >${link}</a
             >
   `;
+};
+const handleDetailFavorite = (storeList, storeId) => {
+  const modal = document.querySelector(".modal-store-detail");
+  const icon = modal.querySelector(".modal-container").querySelector(".star-icon");
+  icon.addEventListener("click", (e) => {
+    const storeId2 = e.target.closest(".modal-container").getAttribute("id");
+    storeRenderer.toggleFavorite(storeList, icon, storeId2);
+    storeRenderer.rerenderStoreList(storeList.filteredList);
+  });
+};
+const handleCancelDetail = () => {
+  document.querySelector("#close-button").addEventListener(
+    "click",
+    () => modalRenderer.closeModal(".modal-store-detail")
+  );
+};
+const handleDeleteStore = (storeList) => {
+  document.querySelector("#delete-button").addEventListener("click", () => {
+    storeRenderer.deleteStore(storeList);
+  });
 };
 const TextArea = (name, helpText2, colRow = { col: 30, row: 5 }) => {
   const formItem = createElement({ tag: "div", classList: ["form-item"] });
@@ -441,14 +590,14 @@ const helpText = {
 };
 const modalRenderer = {
   // 모달창 닫기
-  closeModal: () => {
-    const modal = document.querySelector(".modal");
-    modal.remove();
+  closeModal: (selector) => {
+    document.querySelector(selector).classList.remove("modal--open");
   },
   // **모달 입력 폼**
   // 폼 추가
-  addForm: () => {
-    const modalContainer = document.querySelector(".modal-container");
+  addForm: (storeList) => {
+    const modal = document.querySelector(".modal-add-store");
+    const modalContainer = modal.querySelector(".modal-container");
     modalContainer.innerHTML = `<h2 class="modal-title text-title">새로운 음식점</h2>
     <form class="modal-form"></form>`;
     const modalForm = document.querySelector(".modal-form");
@@ -462,24 +611,35 @@ const modalRenderer = {
         {
           name: "취소하기",
           type: "button",
-          class: "button--secondary",
+          class: ["button--secondary"],
           id: "cancel-button"
         },
         {
           name: "추가하기",
           type: "submit",
-          class: "button--primary",
+          class: ["button--primary"],
           id: "add-button"
         }
       ])
     );
     modalRenderer.addFormCheck();
-    document.querySelector("#cancel-button").addEventListener("click", modalRenderer.closeModal);
+    document.querySelector("#cancel-button").addEventListener("click", () => {
+      console.log("cancel");
+      document.querySelector(".modal-form").reset();
+      modalRenderer.closeModal(".modal-add-store");
+    });
+    document.querySelector(".modal-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      console.log("submit clicked");
+      storeRenderer.updateStore(storeList, e);
+    });
   },
   // 버튼 추가
   addButtons: (buttonProps) => {
-    const buttonContainer = document.createElement("div");
-    buttonContainer.classList.add("button-container");
+    const buttonContainer = createElement({
+      tag: "div",
+      classList: ["button-container"]
+    });
     buttonProps.forEach((props) => {
       buttonContainer.appendChild(Button(props));
     });
@@ -519,8 +679,10 @@ const modalRenderer = {
     if (!input.classList.contains("form-item--error")) {
       input.classList.add("form-item--error");
       const parentNode = input.parentNode;
-      const errorText = document.createElement("span");
-      errorText.classList.add("error-text");
+      const errorText = createElement({
+        tag: "span",
+        classList: ["error-text"]
+      });
       errorText.innerText = e.message;
       parentNode.appendChild(errorText);
     }
@@ -536,7 +698,8 @@ const modalRenderer = {
   },
   // **식당 상세 정보**
   setStoreInfoModal: (store) => {
-    const modalContainer = document.querySelector(".modal-container");
+    const modal = document.querySelector(".modal-store-detail");
+    const modalContainer = modal.querySelector(".modal-container");
     modalContainer.setAttribute("id", store.id);
     modalContainer.innerHTML = StoreDetail(store);
     modalContainer.appendChild(
@@ -544,198 +707,67 @@ const modalRenderer = {
         {
           name: "삭제하기",
           type: "button",
-          class: "button--secondary",
+          class: ["button--secondary"],
           id: "delete-button"
         },
         {
           name: "닫기",
           type: "button",
-          class: "button--primary",
+          class: ["button--primary"],
           id: "close-button"
         }
       ])
     );
   }
 };
-const byteToHex = [];
-for (let i = 0; i < 256; ++i) {
-  byteToHex.push((i + 256).toString(16).slice(1));
-}
-function unsafeStringify(arr, offset = 0) {
-  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
-}
-let getRandomValues;
-const rnds8 = new Uint8Array(16);
-function rng() {
-  if (!getRandomValues) {
-    if (typeof crypto === "undefined" || !crypto.getRandomValues) {
-      throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
-    }
-    getRandomValues = crypto.getRandomValues.bind(crypto);
-  }
-  return getRandomValues(rnds8);
-}
-const randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
-const native = { randomUUID };
-function v4(options2, buf, offset) {
-  var _a;
-  if (native.randomUUID && true && !options2) {
-    return native.randomUUID();
-  }
-  options2 = options2 || {};
-  const rnds = options2.random ?? ((_a = options2.rng) == null ? void 0 : _a.call(options2)) ?? rng();
-  if (rnds.length < 16) {
-    throw new Error("Random bytes length must be >= 16");
-  }
-  rnds[6] = rnds[6] & 15 | 64;
-  rnds[8] = rnds[8] & 63 | 128;
-  return unsafeStringify(rnds);
-}
-const storeRenderer = {
-  // 새로운 식당 추가
-  addStore: (storeProps) => {
-    const list = document.createElement("li");
-    list.setAttribute("id", storeProps.id);
-    list.classList.add("restaurant");
-    const starIconId = v4();
-    const store = Store(storeProps, starIconId);
-    list.innerHTML = store;
-    document.querySelector(".restaurant-list").appendChild(list);
-  },
-  // 식당 리스트 업데이트
-  updateStore: (storeList, e) => {
-    const newStore = storeRenderer.createStore(e);
-    try {
-      e.preventDefault();
-      validate.emptySelector(newStore.category);
-      validate.nameLength(newStore.name);
-      validate.emptySelector(newStore.dist);
-      validate.descLength(newStore.description);
-      validate.linkForm(newStore.link);
-      storeList.updateList(newStore);
-      window.localStorage.setItem(
-        JSON.stringify(newStore.id),
-        JSON.stringify(newStore)
-      );
-      document.querySelector(".all-restaurant-button").classList.add("onMenuBar");
-      document.querySelector(".favorite-restaurant-button").classList.remove("onMenuBar");
-      document.querySelector("#category-filter").value = Object.keys(
-        options.sortCategory
-      )[0];
-      document.querySelector("#sorting-filter").value = Object.keys(
-        options.sortFilter
-      )[0];
-      storeRenderer.rerenderStoreList(storeList.list);
-      modalRenderer.closeModal();
-    } catch (error) {
-      storeRenderer.checkRequired("category", newStore.category, error);
-      storeRenderer.checkRequired("name", newStore.name, error);
-      storeRenderer.checkRequired("distance", newStore.dist, error);
-    }
-  },
-  // 필수 조건 확인
-  checkRequired: (input, value, error) => {
-    if (value === "") {
-      const input2 = document.querySelector(`#${input2}`);
-      modalRenderer.addErrorText(input2, error);
-    }
-  },
-  // 새로운 식당 데이터 생성
-  createStore: (e) => {
-    const data = new FormData(e.target);
-    return {
-      id: v4(),
-      category: data.get("category"),
-      name: data.get("name"),
-      dist: data.get("distance"),
-      description: data.get("description"),
-      link: data.get("link"),
-      isFavorite: false
-    };
-  },
-  // 식당 리스트 요소 제거
-  removeStoreElements: () => {
-    document.querySelector(".restaurant-list").replaceChildren();
-  },
-  // 식당 필터링
-  filterStore: (storeList, e) => {
-    const isFavorite = document.querySelector(".onMenuBar").classList.contains("favorite-restaurant-button");
-    storeList.filterStoreList(e.target.value, isFavorite);
-    storeRenderer.rerenderStoreList(storeList.filteredList);
-  },
-  // 식당 정렬
-  sortStore: (storeList, e) => {
-    document.querySelector(".onMenuBar").classList.contains("favorite-restaurant-button");
-    storeList.sortStoreList(e.target.value);
-    storeRenderer.rerenderStoreList(storeList.filteredList);
-  },
-  // 즐겨찾기 수정
-  toggleFavorite: (storeList, starIcon, storeId) => {
-    const storeInfo = storeList.list.find((store) => store.id === storeId);
-    storeInfo.isFavorite = !storeInfo.isFavorite;
-    starIcon.setAttribute(
-      "src",
-      storeInfo.isFavorite ? IMG_SRC.STAR_ICON_FILLED : IMG_SRC.STAR_ICON_LINED
-    );
-    const isFavorite = document.querySelector(".onMenuBar").classList.contains("favorite-restaurant-button");
-    storage.updateIsFavorite(storeId);
-    storeList.updateIsFavorite(storeId, isFavorite);
-  },
-  // 모든 음식점 / 자주 가는 음식점 메뉴바 셋팅
-  setMenuBar: (storeList, e) => {
-    document.querySelector("#category-filter").value = "전체";
-    document.querySelector("#sorting-filter").value = "name";
-    const button = e.target.closest(".menuBar-button");
-    const buttonText = button.querySelector(".button-text").textContent;
-    if (buttonText === "모든 음식점") {
-      storeList.filterByMenuBar(false);
-      document.querySelector(".all-restaurant-button").classList.add("onMenuBar");
-      document.querySelector(".favorite-restaurant-button").classList.remove("onMenuBar");
-    }
-    if (buttonText === "자주 가는 음식점") {
-      storeList.filterByMenuBar(true);
-      document.querySelector(".favorite-restaurant-button").classList.add("onMenuBar");
-      document.querySelector(".all-restaurant-button").classList.remove("onMenuBar");
-    }
-    storeRenderer.rerenderStoreList(storeList.filteredList);
-  },
-  // 식당 삭제
-  deleteStore: (storeList) => {
-    const storeId = document.querySelector(".modal-container").getAttribute("id");
-    window.localStorage.removeItem(JSON.stringify(storeId));
-    const isFavorite = document.querySelector(".onMenuBar").classList.contains("favorite-restaurant-button");
-    storeList.deleteStore(storeId, isFavorite);
-    modalRenderer.closeModal();
-    storeRenderer.rerenderStoreList(storeList.filteredList);
-    document.querySelector("#category-filter").value = "전체";
-    document.querySelector("#sorting-filter").value = "name";
-  },
-  rerenderStoreList(list) {
-    storeRenderer.removeStoreElements();
-    list.forEach((store) => {
-      storeRenderer.addStore(store);
-    });
-  }
+const Modal = (storeList, classList) => {
+  const modal = createElement({
+    tag: "div",
+    classList: ["modal", ...classList]
+  });
+  const modalBackdrop = createElement({
+    tag: "div",
+    classList: ["modal-backdrop"]
+  });
+  const modalContainer = createElement({
+    tag: "div",
+    classList: ["modal-container"]
+  });
+  modal.appendChild(modalBackdrop);
+  modal.appendChild(modalContainer);
+  document.querySelector("main").appendChild(modal);
+  document.querySelector(".modal-backdrop").addEventListener("click", () => modalRenderer.closeModal());
+};
+const Select = ({ name = "", id = "", classList = [], options: options2, callback }) => {
+  const select = createElement({
+    tag: "select",
+    name,
+    id,
+    classList
+  });
+  select.innerHTML = `
+  ${Object.keys(options2).map((key) => `<option value="${key}">${options2[key]}</option>`).join("")}`;
+  select.addEventListener("change", callback);
+  return select;
 };
 const initRenderer = {
-  setHeader: (title2) => {
-    const header = document.querySelector(".header");
-    header.innerHTML = Header(title2);
-  },
   // 카테고리/정렬 드롭박스 셋팅
-  setRestaurantFilter: () => {
+  setRestaurantFilter: (storeList) => {
+    document.querySelector(".restaurant-filter-container").classList.add("filter-open");
     const categorySelect = Select({
       name: "category",
       id: "category-filter",
       classList: ["restaurant-filter"],
-      options: options.sortCategory
+      options: options.sortCategory,
+      callback: (e) => storeRenderer.filterStore(storeList, e)
     });
     document.querySelector(".restaurant-filter-container").appendChild(categorySelect);
     const sortSelect = Select({
       name: "sorting",
       id: "sorting-filter",
       classList: ["restaurant-filter"],
-      options: options.sortFilter
+      options: options.sortFilter,
+      callback: (e) => storeRenderer.sortStore(storeList, e)
     });
     document.querySelector(".restaurant-filter-container").appendChild(sortSelect);
   },
@@ -743,13 +775,9 @@ const initRenderer = {
     storage.setStorage();
     const storeList = new StoreList(storage.getStorageItems());
     storeList.list.forEach((store) => {
-      storeRenderer.addStore(store);
+      Store(store);
     });
     return storeList;
-  },
-  setModal: () => {
-    const modal = Modal();
-    document.querySelector("main").appendChild(modal);
   }
 };
 const uiBasicText = {
@@ -757,7 +785,7 @@ const uiBasicText = {
   ALL_MENUBAR_TEXT: "모든 음식점",
   FAVORITE_MENUBAR_TEXT: "자주 가는 음식점"
 };
-const MenuBar = () => {
+const MenuBar = (storeList) => {
   const container = document.querySelector(".restaurant-menuBar-container");
   const allButton = createElement({
     tag: "button",
@@ -765,7 +793,8 @@ const MenuBar = () => {
   });
   const allButtonText = createElement({
     tag: "span",
-    classList: ["all-restaurant-button-text", "button-text"]
+    classList: ["all-restaurant-button-text", "button-text"],
+    textContent: uiBasicText.ALL_MENUBAR_TEXT
   });
   const favoriteButton = createElement({
     tag: "button",
@@ -773,59 +802,53 @@ const MenuBar = () => {
   });
   const favoriteButtonText = createElement({
     tag: "span",
-    classList: ["favorite-restaurant-button-text", "button-text"]
+    classList: ["favorite-restaurant-button-text", "button-text"],
+    textContent: uiBasicText.FAVORITE_MENUBAR_TEXT
   });
-  allButtonText.textContent = uiBasicText.ALL_MENUBAR_TEXT;
-  favoriteButtonText.textContent = uiBasicText.FAVORITE_MENUBAR_TEXT;
   allButton.appendChild(allButtonText);
   favoriteButton.appendChild(favoriteButtonText);
   container.append(allButton, favoriteButton);
+  document.querySelector(".restaurant-menuBar-container").addEventListener("click", (e) => {
+    storeRenderer.setMenuBar(storeList, e);
+  });
+};
+const Header = (title2) => {
+  const header = document.querySelector(".header");
+  header.innerHTML = `
+    <h1 class="gnb__title text-title">${title2}</h1>
+    <button type="button" class="gnb__button" aria-label="음식점 추가">
+      <img src=${IMG_SRC.MODAL_ICON_SRC} alt="음식점 추가" />
+    </button>
+    `;
+  document.querySelector(".gnb__button").addEventListener("click", () => {
+    document.querySelector(".modal-add-store").classList.add("modal--open");
+  });
 };
 addEventListener("load", () => {
-  initRenderer.setHeader(uiBasicText.HEADER_TEXT);
-  MenuBar();
-  initRenderer.setRestaurantFilter();
   const storeList = initRenderer.setStoreList();
-  document.querySelector(".gnb__button").addEventListener("click", () => {
-    initRenderer.setModal();
-    document.querySelector(".modal").classList.add("modal--open");
-    modalRenderer.addForm();
-    document.querySelector(".modal-form").addEventListener(
-      "submit",
-      (e) => storeRenderer.updateStore(storeList, e)
-    );
-    document.querySelector(".modal-backdrop").addEventListener("click", modalRenderer.closeModal);
-  });
-  document.querySelector("#category-filter").addEventListener("change", (e) => storeRenderer.filterStore(storeList, e));
-  document.querySelector("#sorting-filter").addEventListener("change", (e) => storeRenderer.sortStore(storeList, e));
+  Header(uiBasicText.HEADER_TEXT);
+  initRenderer.setRestaurantFilter(storeList);
+  MenuBar(storeList);
+  Modal(storeList, ["modal-add-store"]);
+  modalRenderer.addForm(storeList);
+  Modal(storeList, ["modal-store-detail"]);
   document.querySelector(".restaurant-list").addEventListener("click", (e) => {
     const starIcon = e.target.closest(".star-icon");
     if (starIcon) {
       const store2 = e.target.closest(".restaurant");
       const storeId2 = store2.getAttribute("id");
-      const icon2 = store2.querySelector(".star-icon");
-      storeRenderer.toggleFavorite(storeList, icon2, storeId2);
+      const icon = store2.querySelector(".star-icon");
+      storeRenderer.toggleFavorite(storeList, icon, storeId2);
       storeRenderer.rerenderStoreList(storeList.filteredList);
     }
     const storeInfo = e.target.closest(".restaurant__info");
     if (!storeInfo) return;
     const storeId = e.target.closest(".restaurant").getAttribute("id");
     const store = storeList.filterByStoreId(storeId);
-    initRenderer.setModal();
-    document.querySelector(".modal").classList.add("modal--open");
+    document.querySelector(".modal-store-detail").classList.add("modal--open");
     modalRenderer.setStoreInfoModal(store);
-    document.querySelector("#close-button").addEventListener("click", modalRenderer.closeModal);
-    document.querySelector("#delete-button").addEventListener("click", () => {
-      storeRenderer.deleteStore(storeList);
-    });
-    const icon = document.querySelector(".modal-container").querySelector(".star-icon");
-    icon.addEventListener("click", (e2) => {
-      const storeId2 = e2.target.closest(".modal-container").getAttribute("id");
-      storeRenderer.toggleFavorite(storeList, icon, storeId2);
-      storeRenderer.rerenderStoreList(storeList.filteredList);
-    });
-  });
-  document.querySelector(".restaurant-menuBar-container").addEventListener("click", (e) => {
-    storeRenderer.setMenuBar(storeList, e);
+    handleCancelDetail();
+    handleDeleteStore(storeList);
+    handleDetailFavorite(storeList);
   });
 });
