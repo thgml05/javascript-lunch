@@ -496,15 +496,10 @@ const storeRenderer = {
     });
   }
 };
-const StoreDetail = ({
-  name,
-  category,
-  dist,
-  description,
-  link,
-  isFavorite
-}) => {
-  return `
+const StoreDetail = ({ id, name, category, dist, description, link, isFavorite }, storeList) => {
+  const modal = document.querySelector(".modal-store-detail");
+  const modalContainer = modal.querySelector(".modal-container");
+  modalContainer.innerHTML = `
     <div class="category-favorite-icon-container">
               <div class="restaurant__category">
                 <img
@@ -530,25 +525,10 @@ const StoreDetail = ({
               >${link}</a
             >
   `;
-};
-const handleDetailFavorite = (storeList, storeId) => {
-  const modal = document.querySelector(".modal-store-detail");
-  const icon = modal.querySelector(".modal-container").querySelector(".star-icon");
+  const icon = modalContainer.querySelector(".star-icon");
   icon.addEventListener("click", (e) => {
-    const storeId2 = e.target.closest(".modal-container").getAttribute("id");
-    storeRenderer.toggleFavorite(storeList, icon, storeId2);
+    storeRenderer.toggleFavorite(storeList, icon, id);
     storeRenderer.rerenderStoreList(storeList.filteredList);
-  });
-};
-const handleCancelDetail = () => {
-  document.querySelector("#close-button").addEventListener(
-    "click",
-    () => modalRenderer.closeModal(".modal-store-detail")
-  );
-};
-const handleDeleteStore = (storeList) => {
-  document.querySelector("#delete-button").addEventListener("click", () => {
-    storeRenderer.deleteStore(storeList);
   });
 };
 const TextArea = (name, helpText2, colRow = { col: 30, row: 5 }) => {
@@ -697,11 +677,11 @@ const modalRenderer = {
     }
   },
   // **식당 상세 정보**
-  setStoreInfoModal: (store) => {
+  setStoreInfoModal: (store, storeList) => {
     const modal = document.querySelector(".modal-store-detail");
     const modalContainer = modal.querySelector(".modal-container");
     modalContainer.setAttribute("id", store.id);
-    modalContainer.innerHTML = StoreDetail(store);
+    StoreDetail(store, storeList);
     modalContainer.appendChild(
       modalRenderer.addButtons([
         {
@@ -718,6 +698,13 @@ const modalRenderer = {
         }
       ])
     );
+    document.querySelector("#close-button").addEventListener(
+      "click",
+      () => modalRenderer.closeModal(".modal-store-detail")
+    );
+    document.querySelector("#delete-button").addEventListener("click", () => {
+      storeRenderer.deleteStore(storeList);
+    });
   }
 };
 const Modal = (storeList, classList) => {
@@ -738,7 +725,13 @@ const Modal = (storeList, classList) => {
   document.querySelector("main").appendChild(modal);
   document.querySelector(".modal-backdrop").addEventListener("click", () => modalRenderer.closeModal());
 };
-const Select = ({ name = "", id = "", classList = [], options: options2, callback }) => {
+const Select = ({
+  name = "",
+  id = "",
+  classList = [],
+  options: options2,
+  handleChange
+}) => {
   const select = createElement({
     tag: "select",
     name,
@@ -747,7 +740,7 @@ const Select = ({ name = "", id = "", classList = [], options: options2, callbac
   });
   select.innerHTML = `
   ${Object.keys(options2).map((key) => `<option value="${key}">${options2[key]}</option>`).join("")}`;
-  select.addEventListener("change", callback);
+  select.addEventListener("change", handleChange);
   return select;
 };
 const initRenderer = {
@@ -759,7 +752,7 @@ const initRenderer = {
       id: "category-filter",
       classList: ["restaurant-filter"],
       options: options.sortCategory,
-      callback: (e) => storeRenderer.filterStore(storeList, e)
+      handleChange: (e) => storeRenderer.filterStore(storeList, e)
     });
     document.querySelector(".restaurant-filter-container").appendChild(categorySelect);
     const sortSelect = Select({
@@ -767,7 +760,7 @@ const initRenderer = {
       id: "sorting-filter",
       classList: ["restaurant-filter"],
       options: options.sortFilter,
-      callback: (e) => storeRenderer.sortStore(storeList, e)
+      handleChange: (e) => storeRenderer.sortStore(storeList, e)
     });
     document.querySelector(".restaurant-filter-container").appendChild(sortSelect);
   },
@@ -846,9 +839,6 @@ addEventListener("load", () => {
     const storeId = e.target.closest(".restaurant").getAttribute("id");
     const store = storeList.filterByStoreId(storeId);
     document.querySelector(".modal-store-detail").classList.add("modal--open");
-    modalRenderer.setStoreInfoModal(store);
-    handleCancelDetail();
-    handleDeleteStore(storeList);
-    handleDetailFavorite(storeList);
+    modalRenderer.setStoreInfoModal(store, storeList);
   });
 });
