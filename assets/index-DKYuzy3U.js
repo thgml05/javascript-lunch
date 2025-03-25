@@ -43,104 +43,6 @@ var _list, _filteredList, _category, _sortBy;
     fetch(link.href, fetchOpts);
   }
 })();
-const options = {
-  category: ["한식", "중식", "일식", "양식", "아시안", "기타"],
-  distance: ["5", "10", "15", "20", "25", "30"],
-  sortCategory: {
-    전체: "전체",
-    한식: "한식",
-    중식: "중식",
-    일식: "일식",
-    양식: "양식",
-    아시안: "아시안",
-    기타: "기타"
-  },
-  sortFilter: { name: "이름순", distance: "거리순" }
-};
-class StoreList {
-  constructor(data) {
-    __privateAdd(this, _list);
-    __privateAdd(this, _filteredList);
-    __privateAdd(this, _category);
-    __privateAdd(this, _sortBy);
-    __privateSet(this, _list, data);
-    __privateSet(this, _filteredList, data);
-    __privateSet(this, _category, Object.keys(options.sortCategory)[0]);
-    __privateSet(this, _sortBy, Object.keys(options.sortFilter)[0]);
-    this.sortStoreList(__privateGet(this, _sortBy));
-  }
-  get list() {
-    return __privateGet(this, _list);
-  }
-  get filteredList() {
-    return __privateGet(this, _filteredList);
-  }
-  // 식당 추가
-  updateList(store) {
-    __privateGet(this, _list).push(store);
-    this.applyFilterAndSort(false);
-  }
-  // 즐겨찾기 등록
-  updateIsFavorite(id, isFavoriteMenu) {
-    __privateSet(this, _list, __privateGet(this, _list).map((store) => {
-      if (store.id === id) !store.isFavorite;
-      return store;
-    }));
-    if (!isFavoriteMenu) {
-      this.filterStoreList(__privateGet(this, _category));
-      this.sortStoreList(__privateGet(this, _sortBy));
-    } else {
-      __privateSet(this, _filteredList, __privateGet(this, _list).filter((store) => store.isFavorite));
-    }
-  }
-  filterByMenuBar(menu) {
-    if (menu === "모든 음식점") {
-      this.filterStoreList("전체");
-      this.sortStoreList("name");
-    } else if (menu === "자주 가는 음식점") {
-      __privateSet(this, _filteredList, __privateGet(this, _list).filter((store) => store.isFavorite));
-      this.sortStoreList("name");
-    }
-  }
-  // 식당 삭제
-  deleteStore(id, isFavorite) {
-    __privateSet(this, _list, __privateGet(this, _list).filter((store) => store.id !== id));
-    this.applyFilterAndSort(isFavorite);
-  }
-  // id로 식당 정보 찾기
-  filterByStoreId(id) {
-    return __privateGet(this, _list).find((store) => store.id === id);
-  }
-  applyFilterAndSort(isFavorite) {
-    if (!isFavorite) {
-      this.filterStoreList(__privateGet(this, _category));
-    } else {
-      __privateSet(this, _filteredList, __privateGet(this, _list).filter((store) => store.isFavorite));
-    }
-    this.sortStoreList(__privateGet(this, _sortBy));
-  }
-  // 카테고리 필터 적용
-  filterStoreList(category) {
-    if (category === "전체") __privateSet(this, _filteredList, __privateGet(this, _list));
-    else __privateSet(this, _filteredList, __privateGet(this, _list).filter((l) => l.category === category));
-    __privateSet(this, _category, category);
-    this.sortStoreList(__privateGet(this, _sortBy));
-  }
-  // 정렬 적용
-  sortStoreList(sortBy) {
-    if (sortBy === "name")
-      __privateGet(this, _filteredList).sort(
-        (a, b) => a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1
-      );
-    if (sortBy === "distance")
-      __privateGet(this, _filteredList).sort((a, b) => Number(a.dist) - Number(b.dist));
-    __privateSet(this, _sortBy, sortBy);
-  }
-}
-_list = new WeakMap();
-_filteredList = new WeakMap();
-_category = new WeakMap();
-_sortBy = new WeakMap();
 const createElement = ({
   tag,
   type = "",
@@ -200,6 +102,88 @@ const OptionInput = (name, options2) => {
   `;
   return formItem;
 };
+const TextArea = (name, helpText2, colRow = { col: 30, row: 5 }) => {
+  const formItem = createElement({ tag: "div", classList: ["form-item"] });
+  formItem.innerHTML = `
+  <label for="${name}">${title[name]}</label>
+                <textarea
+                  name="${name}"
+                  id="${name}"
+                  cols="${colRow.col}"
+                  rows="${colRow.row}"
+                ></textarea>
+                <span class="help-text text-caption"
+                  >${helpText2}</span
+                >
+  `;
+  return formItem;
+};
+const TextInput = (name, isRequired, helpText2) => {
+  const formItem = createElement({ tag: "div", classList: ["form-item"] });
+  if (isRequired) formItem.classList.add("form-item--required");
+  formItem.innerHTML = `
+                <label for="${name}">${title[name]}</label>
+                <input type="text" name="${name}" id="${name}" />
+  `;
+  if (helpText2) {
+    const span = createElement({
+      tag: "span",
+      classList: ["help-text", "text-caption"]
+    });
+    span.innerText = helpText2;
+    formItem.appendChild(span);
+  }
+  return formItem;
+};
+const helpText = {
+  description: "메뉴 등 추가 정보를 입력해 주세요.",
+  link: "매장 정보를 확인할 수 있는 링크를 입력해 주세요."
+};
+const options = {
+  category: ["한식", "중식", "일식", "양식", "아시안", "기타"],
+  distance: ["5", "10", "15", "20", "25", "30"],
+  sortCategory: {
+    전체: "전체",
+    한식: "한식",
+    중식: "중식",
+    일식: "일식",
+    양식: "양식",
+    아시안: "아시안",
+    기타: "기타"
+  },
+  sortFilter: { name: "이름순", distance: "거리순" }
+};
+const formValidate = {
+  MAX_NAME_LENGTH: 20,
+  MIN_NAME_LENGTH: 1,
+  MAX_DESC_LENGTH: 300
+};
+const errorMessage = {
+  EMPTY_SELECTOR: "필수 입력란입니다.",
+  NAME_LENGTH: "이름은 최소 1자 이상 최대 20자까지 가능합니다.",
+  DESC_LENGTH: "설명은 최대 300자까지 가능합니다.",
+  LINK_FORM: "참고 링크 형식에 맞게 입력해주세요."
+};
+const regex = {
+  LINK_REGEX: /^(https?:\/\/)?www\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/
+};
+const validate = {
+  emptySelector(value) {
+    if (value === "") throw new Error(errorMessage.EMPTY_SELECTOR);
+  },
+  nameLength(name) {
+    if (name.length > formValidate.MAX_NAME_LENGTH || name.length < formValidate.MIN_NAME_LENGTH)
+      throw new Error(errorMessage.NAME_LENGTH);
+  },
+  descLength(desc) {
+    if (desc.length > formValidate.MAX_DESC_LENGTH)
+      throw new Error(errorMessage.DESC_LENGTH);
+  },
+  linkForm(link) {
+    if (link.length !== 0 && !regex.LINK_REGEX.test(link))
+      throw new Error(errorMessage.LINK_FORM);
+  }
+};
 const IMG_SRC = {
   한식: "./category-korean.png",
   중식: "./category-chinese.png",
@@ -210,33 +194,6 @@ const IMG_SRC = {
   MODAL_ICON_SRC: "./add-button.png",
   STAR_ICON_LINED: "./favorite-icon-lined.png",
   STAR_ICON_FILLED: "./favorite-icon-filled.png"
-};
-const Store = (storeProps) => {
-  const imgSrc = getImgSrc(storeProps.category);
-  const list = createElement({
-    tag: "li",
-    id: storeProps.id,
-    classList: ["restaurant"]
-  });
-  list.innerHTML = `
-    <div class="restaurant__category">
-      <img src="${imgSrc}" alt=${storeProps.category} class="category-icon" />
-    </div>
-    <div class="restaurant__info">
-      <h3 class="restaurant__name text-subtitle">${storeProps.name}</h3>
-      <span class="restaurant__distance text-body">캠퍼스부터 ${storeProps.dist}분 내</span>
-      <p class="restaurant__description text-body">
-        ${storeProps.description}
-      </p>
-    </div>
-    <div>
-      <img src=${storeProps.isFavorite ? IMG_SRC.STAR_ICON_FILLED : IMG_SRC.STAR_ICON_LINED} alt="star-icon" class="star-icon">
-    </div>
-`;
-  document.querySelector(".restaurant-list").appendChild(list);
-};
-const getImgSrc = (category) => {
-  return IMG_SRC[category];
 };
 const storeData = [
   {
@@ -318,37 +275,6 @@ const storage = {
         JSON.stringify(jsonStore)
       );
     }
-  }
-};
-const formValidate = {
-  MAX_NAME_LENGTH: 20,
-  MIN_NAME_LENGTH: 1,
-  MAX_DESC_LENGTH: 300
-};
-const errorMessage = {
-  EMPTY_SELECTOR: "필수 입력란입니다.",
-  NAME_LENGTH: "이름은 최소 1자 이상 최대 20자까지 가능합니다.",
-  DESC_LENGTH: "설명은 최대 300자까지 가능합니다.",
-  LINK_FORM: "참고 링크 형식에 맞게 입력해주세요."
-};
-const regex = {
-  LINK_REGEX: /^(https?:\/\/)?www\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/
-};
-const validate = {
-  emptySelector(value) {
-    if (value === "") throw new Error(errorMessage.EMPTY_SELECTOR);
-  },
-  nameLength(name) {
-    if (name.length > formValidate.MAX_NAME_LENGTH || name.length < formValidate.MIN_NAME_LENGTH)
-      throw new Error(errorMessage.NAME_LENGTH);
-  },
-  descLength(desc) {
-    if (desc.length > formValidate.MAX_DESC_LENGTH)
-      throw new Error(errorMessage.DESC_LENGTH);
-  },
-  linkForm(link) {
-    if (link.length !== 0 && !regex.LINK_REGEX.test(link))
-      throw new Error(errorMessage.LINK_FORM);
   }
 };
 const byteToHex = [];
@@ -496,78 +422,6 @@ const storeRenderer = {
     });
   }
 };
-const StoreDetail = ({ id, name, category, dist, description, link, isFavorite }, storeList) => {
-  const modal = document.querySelector(".modal-store-detail");
-  const modalContainer = modal.querySelector(".modal-container");
-  modalContainer.innerHTML = `
-    <div class="category-favorite-icon-container">
-              <div class="restaurant__category">
-                <img
-                  src="${IMG_SRC[category]}"
-                  alt="category-img"
-                  class="category-icon"
-                />
-              </div>
-              <img
-                src="${isFavorite ? IMG_SRC.STAR_ICON_FILLED : IMG_SRC.STAR_ICON_LINED}"
-                alt="favorite-icon"
-                class="star-icon"
-              />
-            </div>
-            <h2 class="text-title restaurant__name">${name}</h2>
-            <span class="restaurant__distance text-body info-distance"
-              >캠퍼스로부터 ${dist}분 내</span
-            >
-            <span class="text-body"
-              >${description}</span
-            >
-            <a href="${link}" class="info-link"
-              >${link}</a
-            >
-  `;
-  const icon = modalContainer.querySelector(".star-icon");
-  icon.addEventListener("click", (e) => {
-    storeRenderer.toggleFavorite(storeList, icon, id);
-    storeRenderer.rerenderStoreList(storeList.filteredList);
-  });
-};
-const TextArea = (name, helpText2, colRow = { col: 30, row: 5 }) => {
-  const formItem = createElement({ tag: "div", classList: ["form-item"] });
-  formItem.innerHTML = `
-  <label for="${name}">${title[name]}</label>
-                <textarea
-                  name="${name}"
-                  id="${name}"
-                  cols="${colRow.col}"
-                  rows="${colRow.row}"
-                ></textarea>
-                <span class="help-text text-caption"
-                  >${helpText2}</span
-                >
-  `;
-  return formItem;
-};
-const TextInput = (name, isRequired, helpText2) => {
-  const formItem = createElement({ tag: "div", classList: ["form-item"] });
-  if (isRequired) formItem.classList.add("form-item--required");
-  formItem.innerHTML = `
-                <label for="${name}">${title[name]}</label>
-                <input type="text" name="${name}" id="${name}" />
-  `;
-  if (helpText2) {
-    const span = createElement({
-      tag: "span",
-      classList: ["help-text", "text-caption"]
-    });
-    span.innerText = helpText2;
-    formItem.appendChild(span);
-  }
-  return formItem;
-};
-const helpText = {
-  description: "메뉴 등 추가 정보를 입력해 주세요.",
-  link: "매장 정보를 확인할 수 있는 링크를 입력해 주세요."
-};
 const modalRenderer = {
   // 모달창 닫기
   closeModal: (selector) => {
@@ -604,13 +458,11 @@ const modalRenderer = {
     );
     modalRenderer.addFormCheck();
     document.querySelector("#cancel-button").addEventListener("click", () => {
-      console.log("cancel");
       document.querySelector(".modal-form").reset();
       modalRenderer.closeModal(".modal-add-store");
     });
     document.querySelector(".modal-form").addEventListener("submit", (e) => {
       e.preventDefault();
-      console.log("submit clicked");
       storeRenderer.updateStore(storeList, e);
     });
   },
@@ -675,37 +527,8 @@ const modalRenderer = {
         input.parentNode.querySelector(".error-text")
       );
     }
-  },
-  // **식당 상세 정보**
-  setStoreInfoModal: (store, storeList) => {
-    const modal = document.querySelector(".modal-store-detail");
-    const modalContainer = modal.querySelector(".modal-container");
-    modalContainer.setAttribute("id", store.id);
-    StoreDetail(store, storeList);
-    modalContainer.appendChild(
-      modalRenderer.addButtons([
-        {
-          name: "삭제하기",
-          type: "button",
-          class: ["button--secondary"],
-          id: "delete-button"
-        },
-        {
-          name: "닫기",
-          type: "button",
-          class: ["button--primary"],
-          id: "close-button"
-        }
-      ])
-    );
-    document.querySelector("#close-button").addEventListener(
-      "click",
-      () => modalRenderer.closeModal(".modal-store-detail")
-    );
-    document.querySelector("#delete-button").addEventListener("click", () => {
-      storeRenderer.deleteStore(storeList);
-    });
   }
+  // **식당 상세 정보**
 };
 const Modal = (storeList, classList) => {
   const modal = createElement({
@@ -743,6 +566,117 @@ const Select = ({
   select.addEventListener("change", handleChange);
   return select;
 };
+class StoreList {
+  constructor(data) {
+    __privateAdd(this, _list);
+    __privateAdd(this, _filteredList);
+    __privateAdd(this, _category);
+    __privateAdd(this, _sortBy);
+    __privateSet(this, _list, data);
+    __privateSet(this, _filteredList, data);
+    __privateSet(this, _category, Object.keys(options.sortCategory)[0]);
+    __privateSet(this, _sortBy, Object.keys(options.sortFilter)[0]);
+    this.sortStoreList(__privateGet(this, _sortBy));
+  }
+  get list() {
+    return __privateGet(this, _list);
+  }
+  get filteredList() {
+    return __privateGet(this, _filteredList);
+  }
+  // 식당 추가
+  updateList(store) {
+    __privateGet(this, _list).push(store);
+    this.applyFilterAndSort(false);
+  }
+  // 즐겨찾기 등록
+  updateIsFavorite(id, isFavoriteMenu) {
+    __privateSet(this, _list, __privateGet(this, _list).map((store) => {
+      if (store.id === id) !store.isFavorite;
+      return store;
+    }));
+    if (!isFavoriteMenu) {
+      this.filterStoreList(__privateGet(this, _category));
+      this.sortStoreList(__privateGet(this, _sortBy));
+    } else {
+      __privateSet(this, _filteredList, __privateGet(this, _list).filter((store) => store.isFavorite));
+    }
+  }
+  filterByMenuBar(menu) {
+    if (menu === "모든 음식점") {
+      this.filterStoreList("전체");
+      this.sortStoreList("name");
+    } else if (menu === "자주 가는 음식점") {
+      __privateSet(this, _filteredList, __privateGet(this, _list).filter((store) => store.isFavorite));
+      this.sortStoreList("name");
+    }
+  }
+  // 식당 삭제
+  deleteStore(id, isFavorite) {
+    __privateSet(this, _list, __privateGet(this, _list).filter((store) => store.id !== id));
+    this.applyFilterAndSort(isFavorite);
+  }
+  // id로 식당 정보 찾기
+  filterByStoreId(id) {
+    return __privateGet(this, _list).find((store) => store.id === id);
+  }
+  applyFilterAndSort(isFavorite) {
+    if (!isFavorite) {
+      this.filterStoreList(__privateGet(this, _category));
+    } else {
+      __privateSet(this, _filteredList, __privateGet(this, _list).filter((store) => store.isFavorite));
+    }
+    this.sortStoreList(__privateGet(this, _sortBy));
+  }
+  // 카테고리 필터 적용
+  filterStoreList(category) {
+    if (category === "전체") __privateSet(this, _filteredList, __privateGet(this, _list));
+    else __privateSet(this, _filteredList, __privateGet(this, _list).filter((l) => l.category === category));
+    __privateSet(this, _category, category);
+    this.sortStoreList(__privateGet(this, _sortBy));
+  }
+  // 정렬 적용
+  sortStoreList(sortBy) {
+    if (sortBy === "name")
+      __privateGet(this, _filteredList).sort(
+        (a, b) => a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1
+      );
+    if (sortBy === "distance")
+      __privateGet(this, _filteredList).sort((a, b) => Number(a.dist) - Number(b.dist));
+    __privateSet(this, _sortBy, sortBy);
+  }
+}
+_list = new WeakMap();
+_filteredList = new WeakMap();
+_category = new WeakMap();
+_sortBy = new WeakMap();
+const Store$1 = (storeProps) => {
+  const imgSrc = getImgSrc(storeProps.category);
+  const list = createElement({
+    tag: "li",
+    id: storeProps.id,
+    classList: ["restaurant"]
+  });
+  list.innerHTML = `
+    <div class="restaurant__category">
+      <img src="${imgSrc}" alt=${storeProps.category} class="category-icon" />
+    </div>
+    <div class="restaurant__info">
+      <h3 class="restaurant__name text-subtitle">${storeProps.name}</h3>
+      <span class="restaurant__distance text-body">캠퍼스부터 ${storeProps.dist}분 내</span>
+      <p class="restaurant__description text-body">
+        ${storeProps.description}
+      </p>
+    </div>
+    <div>
+      <img src=${storeProps.isFavorite ? IMG_SRC.STAR_ICON_FILLED : IMG_SRC.STAR_ICON_LINED} alt="star-icon" class="star-icon">
+    </div>
+`;
+  document.querySelector(".restaurant-list").appendChild(list);
+};
+const getImgSrc = (category) => {
+  return IMG_SRC[category];
+};
 const initRenderer = {
   // 카테고리/정렬 드롭박스 셋팅
   setRestaurantFilter: (storeList) => {
@@ -768,7 +702,7 @@ const initRenderer = {
     storage.setStorage();
     const storeList = new StoreList(storage.getStorageItems());
     storeList.list.forEach((store) => {
-      Store(store);
+      Store$1(store);
     });
     return storeList;
   }
